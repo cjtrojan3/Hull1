@@ -7,6 +7,11 @@ import java.util.List;
 
 public class QuickHull implements ConvexHullFinder{
 
+	/**
+	 * Main method that does initial setup then calls the recursive method
+	 * 
+	 * @param points - The list of points of which we need to find the hull
+	 */
 	@Override
 	public List<Point2D> computeHull(List<Point2D> points) {
 		//Initial setup:
@@ -63,7 +68,13 @@ public class QuickHull implements ConvexHullFinder{
 		return firstList;
 	}
 	
-	//Recursive method to be called
+	/**
+	 * Recursive method that is being called
+	 * 
+	 * @param lineAB A and B are tentative neighbors on the uncompleted hull
+	 * @param pointsAB These points are outside of the lineAB and we have to find out what points are part of the hull
+	 * @return List of points that are on the hull
+	 */
 	private List<Point2D> recursiveQuickHull(Line2D lineAB, List<Point2D> pointsAB){
 		//Base cases
 		if (pointsAB.size() == 0) {
