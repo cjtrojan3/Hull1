@@ -47,10 +47,15 @@ public class MergeHull implements ConvexHullFinder{
 		//Get the furthest right of left list and the furthest left of the right list
 		//List is supposed to be in CCW order, but might not be sorted from left to right
 		//Stevenson's write-up says that, so I'm finding the points with these for-loops
+		
+		int midLeftIndex = 0;
+		int midRightIndex = 0;
+		
 		Point2D midLeft = listA.get(0);
 		for(Point2D p : listA) {
 			if(p.getX() > midLeft.getX()) {
 				midLeft = p;
+				midLeftIndex = listA.indexOf(p);
 			}
 		}
 		
@@ -58,23 +63,19 @@ public class MergeHull implements ConvexHullFinder{
 		for(Point2D p : listB) {
 			if(p.getX() < midRight.getX()) {
 				midRight = p;
+				midRightIndex = listB.indexOf(p);
 			}
 		}
 		Point2D midLowerLeft = (Point2D) midLeft.clone();
 		Point2D midLowerRight = (Point2D) midRight.clone();
-		
-		Point2D midUpperLeft = (Point2D) midLeft.clone();
-		Point2D midUpperRight = (Point2D) midRight.clone();
-		
 		Line2D lowerTangent = new Line2D.Double(midLowerLeft, midLowerRight);
-		Line2D upperTangent = new Line2D.Double(midUpperLeft, midUpperRight);
 		
 		//HARD PART HERE, THOTS
 		//The walking of the tangent line relies heavily on the order of the lists being in CCW order.
 		
 		//LowerTangent
-		while(!tanTest(listA, lowerTangent, -1) && !tanTest(listB, lowerTangent, -1)) {
-			while(!tanTest(listA, lowerTangent, -1)) {
+		while(!tanTest(listA, lowerTangent, -1, midRightIndex) && !tanTest(listB, lowerTangent, -1, midLeftIndex)) {
+			while(!tanTest(listA, lowerTangent, -1, midRightIndex)) {
 				try {
 					midLowerLeft = listA.get(listA.indexOf(midLeft)-1);
 				}
@@ -83,7 +84,7 @@ public class MergeHull implements ConvexHullFinder{
 				}
 				lowerTangent.setLine(midLowerLeft, midLowerRight);
 			}
-			while(!tanTest(listB, lowerTangent, -1)) {
+			while(!tanTest(listB, lowerTangent, -1, midRightIndex)) {
 				try {
 					midLowerRight = listB.get(listB.indexOf(midRight)+1);
 				}
@@ -93,42 +94,66 @@ public class MergeHull implements ConvexHullFinder{
 				lowerTangent.setLine(midLowerLeft, midLowerRight);
 			}
 		}
-		//UpperTangent
-		while(!tanTest(listA, upperTangent, 1) && !tanTest(listB, upperTangent, 1)) {
-			while(!tanTest(listA, upperTangent, 1)) {
-				try {
-					midUpperLeft = listA.get(listA.indexOf(midLeft)+1);
-				}
-				catch(IndexOutOfBoundsException e) {
-					midUpperLeft = listA.get(0);
-				}
-				upperTangent.setLine(midUpperLeft, midUpperRight);
-			}
-			while(!tanTest(listB, upperTangent, 1)) {
-				try {
-					midUpperRight = listB.get(listB.indexOf(midUpperRight)-1);
-				}
-				catch(IndexOutOfBoundsException e) {
-					midUpperRight = listB.get(listB.size()-1);
-				}
-				lowerTangent.setLine(midUpperLeft, midUpperRight);
-			}
-		}
-		ArrayList<Point2D> aaa = new ArrayList<Point2D>();
-		aaa.add(lowerTangent.getP1());
-		aaa.add(lowerTangent.getP2());
-		return aaa;
+		
+		
+//		//UpperTangent
+//		while(!tanTest(listA, upperTangent, 1) && !tanTest(listB, upperTangent, 1)) {
+//			while(!tanTest(listA, upperTangent, 1)) {
+//				try {
+//					midUpperLeft = listA.get(listA.indexOf(midLeft)+1);
+//				}
+//				catch(IndexOutOfBoundsException e) {
+//					midUpperLeft = listA.get(0);
+//				}
+//				upperTangent.setLine(midUpperLeft, midUpperRight);
+//			}
+//			while(!tanTest(listB, upperTangent, 1)) {
+//				try {
+//					midUpperRight = listB.get(listB.indexOf(midUpperRight)-1);
+//				}
+//				catch(IndexOutOfBoundsException e) {
+//					midUpperRight = listB.get(listB.size()-1);
+//				}
+//				lowerTangent.setLine(midUpperLeft, midUpperRight);
+//			}
+//		}
+		
+		return null;
 	}
 	
 	
-	//Helper
-	private boolean tanTest(List<Point2D> list, Line2D hullConnector, int side) {
-		//TODO Make it so it only checks the points surrounding the current point, so three total
-		for(Point2D p : list) {
-			if(hullConnector.relativeCCW(p) == side) {
-				return false;
-			}
+	/**
+	 * Helper method for finding out if we need to walk
+	 * 
+	 * @param list List of all the points on the sub-hull in CCW order
+	 * @param hullConnector The existing tangent line that we are testing
+	 * @param side Which tangent line we are trying to find. 1 for upper tangent, -1 for lower tangent
+	 * @param pointIndex The index in sub-hull's list of the point connecting the tangent to that hull
+	 * @return True if the point is good for this hull, false if one of the neighboring points fails
+	 */
+	private boolean tanTest(List<Point2D> list, Line2D hullConnector, int side, int pointIndex) {
+		//TODO: This could probably be cleaned up a bit.
+		int lowerIndex;
+		int upperIndex;
+		
+		//Index out of bounds checks
+		if(pointIndex == 0) {
+			lowerIndex = list.size()-1;
+			upperIndex = pointIndex + 1;
 		}
+		else if(pointIndex == list.size()-1) {
+			lowerIndex = pointIndex - 1;
+			upperIndex = 0;
+		}
+		else {
+			lowerIndex = pointIndex - 1;
+			upperIndex = pointIndex + 1;
+		}
+		
+		if(hullConnector.relativeCCW(list.get(lowerIndex)) == side || hullConnector.relativeCCW(list.get(upperIndex)) == side) {
+			return false;
+		}
+			
 		return true;
 	}
 
