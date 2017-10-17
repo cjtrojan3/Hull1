@@ -18,12 +18,6 @@ public class MergeHull implements ConvexHullFinder{
 		//Sort the points
 		Collections.sort(points, createComparator());
 		
-		System.out.println("Sorted list of points:");
-		System.out.println("----------------------");
-		for(Point2D p : points) {
-			System.out.println("X: " + p.getX() + " Y: " + p.getY());
-		}
-		
 		List<Point2D> hullList = recursiveMergeHull(points);
 		
 		return hullList;
@@ -36,12 +30,11 @@ public class MergeHull implements ConvexHullFinder{
 	 * @return List of points that are on the hull
 	 */
 	private List<Point2D> recursiveMergeHull(List<Point2D> points){
-		//TODO Base Case(s):
-		//Stevenson's write-up says that we have to be careful about these, so stay frosty, Dan
-		
-//		if(points.size() == 1 || points.size() == 2) {
-//			return points;
-//		}
+		//Base Case(s):
+		if(points.size() <= 3) {
+			QuickHull q = new QuickHull();
+			return q.computeHull(points);
+		}
 		
 		//Divide + Conquer:
 		//Divide the sorted list into two equal sets and compute the hull of them
@@ -67,25 +60,78 @@ public class MergeHull implements ConvexHullFinder{
 				midRight = p;
 			}
 		}
+		Point2D midLowerLeft = (Point2D) midLeft.clone();
+		Point2D midLowerRight = (Point2D) midRight.clone();
 		
-		Line2D hullConnector = new Line2D.Double(midLeft, midRight);
+		Point2D midUpperLeft = (Point2D) midLeft.clone();
+		Point2D midUpperRight = (Point2D) midRight.clone();
+		
+		Line2D lowerTangent = new Line2D.Double(midLowerLeft, midLowerRight);
+		Line2D upperTangent = new Line2D.Double(midUpperLeft, midUpperRight);
 		
 		//HARD PART HERE, THOTS
 		//The walking of the tangent line relies heavily on the order of the lists being in CCW order.
 		
-//		A <-- rightmost point of left hull
-//		B <-- leftmost point of right hull
-//		while (T = AB is not the lower tangent to both left and right hulls) {
-//			while (T not lower tangent to left hull) {
-//				A <-- A – 1 (assumption is that hulls are defined in ccw order)
-//			}
-//			while (T not lower tangent to right hull) {
-//				B <-- B + 1 (assumption is that hulls are defined in ccw order)
-//			}
-//		}
-		
-		return null;
+		//LowerTangent
+		while(!tanTest(listA, lowerTangent, -1) && !tanTest(listB, lowerTangent, -1)) {
+			while(!tanTest(listA, lowerTangent, -1)) {
+				try {
+					midLowerLeft = listA.get(listA.indexOf(midLeft)-1);
+				}
+				catch(IndexOutOfBoundsException e) {
+					midLowerLeft = listA.get(listA.size()-1);
+				}
+				lowerTangent.setLine(midLowerLeft, midLowerRight);
+			}
+			while(!tanTest(listB, lowerTangent, -1)) {
+				try {
+					midLowerRight = listB.get(listB.indexOf(midRight)+1);
+				}
+				catch(IndexOutOfBoundsException e) {
+					midLowerRight = listB.get(0);
+				}
+				lowerTangent.setLine(midLowerLeft, midLowerRight);
+			}
+		}
+		//UpperTangent
+		while(!tanTest(listA, upperTangent, 1) && !tanTest(listB, upperTangent, 1)) {
+			while(!tanTest(listA, upperTangent, 1)) {
+				try {
+					midUpperLeft = listA.get(listA.indexOf(midLeft)+1);
+				}
+				catch(IndexOutOfBoundsException e) {
+					midUpperLeft = listA.get(0);
+				}
+				upperTangent.setLine(midUpperLeft, midUpperRight);
+			}
+			while(!tanTest(listB, upperTangent, 1)) {
+				try {
+					midUpperRight = listB.get(listB.indexOf(midUpperRight)-1);
+				}
+				catch(IndexOutOfBoundsException e) {
+					midUpperRight = listB.get(listB.size()-1);
+				}
+				lowerTangent.setLine(midUpperLeft, midUpperRight);
+			}
+		}
+		ArrayList<Point2D> aaa = new ArrayList<Point2D>();
+		aaa.add(lowerTangent.getP1());
+		aaa.add(lowerTangent.getP2());
+		return aaa;
 	}
+	
+	
+	//Helper
+	private boolean tanTest(List<Point2D> list, Line2D hullConnector, int side) {
+		//TODO Make it so it only checks the points surrounding the current point, so three total
+		for(Point2D p : list) {
+			if(hullConnector.relativeCCW(p) == side) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	
 	/**
 	 * Comparater that helps sort the List<Point2D>
